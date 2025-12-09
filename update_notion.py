@@ -55,10 +55,24 @@ def main():
 
         feed = feedparser.parse(rss_url)
 
-        for entry in feed.entries:
-            title = entry.title
-            link = entry.link
-            date_iso = parse_date(entry)
+       from datetime import datetime, timedelta
+
+KST = datetime.utcnow() + timedelta(hours=9)
+TODAY = KST.date()
+
+for entry in feed.entries:
+    # published 날짜가 오늘이 아닌 경우 스킵
+    pub_date = None
+    if getattr(entry, "published_parsed", None):
+        pub_date = datetime(*entry.published_parsed[:6]).date()
+
+    if pub_date != TODAY:
+        continue
+
+    title = entry.title
+    link = entry.link
+    date_iso = datetime(*entry.published_parsed[:6]).isoformat()
+
             source = entry.get("source", {}).get("title", "Google News")
             category = kw
 
