@@ -11,7 +11,7 @@ NOTION_API_URL = "https://api.notion.com/v1/pages"
 NOTION_VERSION = "2022-06-28"
 
 headers = {
-    "Authorization": f"Bearer NOTION_TOKEN}",
+    "Authorization": f"Bearer {NOTION_TOKEN}",
     "Content-Type": "application/json",
     "Notion-Version": NOTION_VERSION,
 }
