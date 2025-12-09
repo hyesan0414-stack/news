@@ -2,8 +2,8 @@ name: Auto News Clipping
 
 on:
   schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
+  - cron: "0 0 * * *"   # 09:00 KST (UTC 0)
+  - cron: "0 9 * * *"   # 18:00 KST (UTC 9)
 
 jobs:
   run:
