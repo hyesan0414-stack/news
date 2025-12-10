@@ -1,13 +1,10 @@
-import os
 import feedparser
 import requests
-from datetime import datetime
-from urllib.parse import quote
+from datetime import datetime, timedelta
+import os
 
-NOTION_TOKEN = os.environ["NOTION_TOKEN"]
-DATABASE_ID = os.environ["DATABASE_ID"]
-
-NOTION_API_URL = "https://api.notion.com/v1/pages"
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+DATABASE_ID = os.getenv("DATABASE_ID")
 NOTION_VERSION = "2022-06-28"
 
 headers = {
@@ -16,67 +13,32 @@ headers = {
     "Notion-Version": NOTION_VERSION,
 }
 
-def add_to_notion(title, url, date_iso, source, category):
+# KST 기준 날짜
+KST = datetime.utcnow() + timedelta(hours=9)
+TODAY = KST.date()
+
+def fetch_google_news(keyword):
+    url = f"https://news.google.com/rss/search?q={keyword}&hl=ko&gl=KR&ceid=KR:ko"
+    return feedparser.parse(url)
+
+def add_to_notion(title, link, published, category, source):
+    create_url = "https://api.notion.com/v1/pages"
+
     data = {
         "parent": {"database_id": DATABASE_ID},
         "properties": {
-            "제목": {
-                "title": [
-                    {"text": {"content": title[:2000]}}
-                ]
-            },
-            "링크": {"url": url},
-            "날짜": {"date": {"start": date_iso}},
+            "제목": {"title": [{"text": {"content": title}}]},
+            "링크": {"url": link},
+            "날짜": {"date": {"start": published}},
             "매체": {"select": {"name": source}},
             "카테고리": {"select": {"name": category}},
         },
     }
 
-    resp = requests.post(NOTION_API_URL, headers=headers, json=data)
-    if resp.status_code >= 300:
-        print("Notion error:", resp.status_code, resp.text)
+    response = requests.post(create_url, headers=headers, json=data)
+    response.raise_for_status()
 
 def parse_date(entry):
     if getattr(entry, "published_parsed", None):
-        return datetime(*entry.published_parsed[:6]).isoformat()
-    return datetime.utcnow().isoformat()
-
-def main():
-    with open("keywords.txt", encoding="utf-8") as f:
-        keywords = [line.strip() for line in f if line.strip()]
-
-    for kw in keywords:
-        q = quote(kw)
-        rss_url = (
-            f"https://news.google.com/rss/search?q={q}"
-            f"&hl=ko&gl=KR&ceid=KR:ko"
-        )
-        print("Fetch keyword:", kw, "->", rss_url)
-
-        feed = feedparser.parse(rss_url)
-
-       from datetime import datetime, timedelta
-
-KST = datetime.utcnow() + timedelta(hours=9)
-TODAY = KST.date()
-
-for entry in feed.entries:
-    # published 날짜가 오늘이 아닌 경우 스킵
-    pub_date = None
-    if getattr(entry, "published_parsed", None):
-        pub_date = datetime(*entry.published_parsed[:6]).date()
-
-    if pub_date != TODAY:
-        continue
-
-    title = entry.title
-    link = entry.link
-    date_iso = datetime(*entry.published_parsed[:6]).isoformat()
-
-            source = entry.get("source", {}).get("title", "Google News")
-            category = kw
-
-            add_to_notion(title, link, date_iso, source, category)
-
-if __name__ == "__main__":
-    main()
+        dt = datetime(*entry.published_parsed[:6])
+        return dt.isoformat
