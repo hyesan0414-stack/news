@@ -2,8 +2,8 @@ import feedparser
 import requests
 from datetime import datetime, timedelta
 
-NOTION_API_KEY = "***"  # GitHub Secrets에서 가져옴
-DATABASE_ID = "***"      # GitHub Secrets에서 가져옴
+NOTION_API_KEY = "***"
+DATABASE_ID = "***"
 
 KEYWORDS_FILE = "keywords.txt"
 
@@ -17,7 +17,7 @@ def load_keywords():
         with open(KEYWORDS_FILE, "r", encoding="utf-8") as f:
             return [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
-        print("❌ keywords.txt 파일을 찾을 수 없습니다.")
+        print("❌ keywords.txt 파일이 없습니다.")
         return []
 
 def fetch_articles():
@@ -29,13 +29,11 @@ def fetch_articles():
         feed = feedparser.parse(url)
 
         for entry in feed.entries:
-            # 날짜 파싱
             try:
                 published = datetime(*entry.published_parsed[:6]).date()
             except:
                 continue
 
-            # 오늘 기사만 저장
             if published != today:
                 continue
 
@@ -68,15 +66,9 @@ def create_notion_page(article):
     data = {
         "parent": {"database_id": DATABASE_ID},
         "properties": {
-            "Title": {
-                "title": [{"text": {"content": article["title"]}}]
-            },
-            "URL": {
-                "url": article["link"]
-            },
-            "Category": {
-                "rich_text": [{"text": {"content": article["category"]}}]
-            },
+            "Title": {"title": [{"text": {"content": article["title"]}}]},
+            "URL": {"url": article["link"]},
+            "Category": {"rich_text": [{"text": {"content": article["category"]}}]},
         },
         "children": [
             {
@@ -94,7 +86,7 @@ def create_notion_page(article):
     if response.status_code == 200:
         print(f"✅ 노션 저장 완료: {article['title']}")
     else:
-        print(f"❌ 노션 저장 실패: {response.status_code}, {response.text}")
+        print(f"❌ 노션 저장 실패: {response.status_code} - {response.text}")
 
 def main():
     print("🚀 Auto News Clipping Started")
